@@ -1,9 +1,10 @@
 import express, { Request, Response } from 'express'
 import cors from 'cors'
 import { TAccountDB, TAccountDBPost, TUserDB, TUserDBPost } from './types'
-import { db } from './database/knex'
+// import { db } from './database/BaseDatabase'
 import { User } from './models/User'
 import { Account } from './models/Account'
+import { UserDatabase } from './database/UserDatabase'
 
 const app = express()
 
@@ -32,19 +33,24 @@ app.get("/ping", async (req: Request, res: Response) => {
     }
 })
 
+// Pratica 3
+
 app.get("/users", async (req: Request, res: Response) => {
     try {
-        const q = req.query.q
+        const q = req.query.q as string
 
-        let usersDB
+        // let usersDB
 
-        if (q) {
-            const result: TUserDB[] = await db("users").where("name", "LIKE", `%${q}%`)
-            usersDB = result
-        } else {
-            const result: TUserDB[] = await db("users")
-            usersDB = result
-        }
+        // if (q) {
+        //     const result: TUserDB[] = await db("users").where("name", "LIKE", `%${q}%`)
+        //     usersDB = result
+        // } else {
+        //     const result: TUserDB[] = await db("users")
+        //     usersDB = result
+        // }
+
+        const userDatabase = new UserDatabase()
+        const usersDB = await userDatabase.findUsers(q)
 
         const users: User[] = usersDB.map((userDB) => new User(
             userDB.id,
@@ -94,7 +100,8 @@ app.post("/users", async (req: Request, res: Response) => {
             throw new Error("'password' deve ser string")
         }
 
-        const [ userDBExists ]: TUserDB[] | undefined[] = await db("users").where({ id })
+        const userDatabase = new UserDatabase()
+        const userDBExists = await userDatabase.findUserById(id)
 
         if (userDBExists) {
             res.status(400)
@@ -117,7 +124,8 @@ app.post("/users", async (req: Request, res: Response) => {
             created_at: newUser.getCreatedAt()
         }
 
-        await db("users").insert(newUserDB)
+        // await db("users").insert(newUserDB)
+        await userDatabase.insertUser(newUserDB)
 
         res.status(201).send(newUser)
     } catch (error) {
@@ -134,6 +142,8 @@ app.post("/users", async (req: Request, res: Response) => {
         }
     }
 })
+
+// Fixação - a fazer
 
 app.get("/accounts", async (req: Request, res: Response) => {
     try {
